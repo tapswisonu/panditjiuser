@@ -1,190 +1,222 @@
 import { useState } from 'react';
+import { Calendar, Clock, User } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { Navigate, Link } from 'react-router-dom';
-import { DivineGradients } from '../components/Icons';
+import { StarFilledIcon } from '../components/SacredIcons';
 
-const MOCK_BOOKINGS = [
-  { id: '#PJ829341', pooja: 'Satyanarayan Katha', pandit: 'Pt. Ramesh Sharma', date: '2025-08-20', time: '09:00', status: 'CONFIRMED', amount: 5100, location: 'Home Visit' },
-  { id: '#PJ712983', pooja: 'Ganesh Pooja', pandit: 'Pt. Mahesh Trivedi', date: '2025-07-25', time: '08:00', status: 'COMPLETED', amount: 3100, location: 'Temple' },
-  { id: '#PJ601234', pooja: 'Hawan', pandit: 'Auto-assigned', date: '2025-09-10', time: '07:00', status: 'PENDING', amount: 4500, location: 'Online' },
+const BOOKINGS = [
+  { id: 'PJ12458', pooja: 'Satyanarayan Katha', pandit: 'Pt. Ramesh Sharma', date: 'July 20, 2026', time: '09:00 AM', status: 'upcoming', amount: 5100 },
+  { id: 'PJ11892', pooja: 'Griha Pravesh', pandit: 'Pt. Arvind Joshi', date: 'July 5, 2026', time: '07:00 AM', status: 'completed', amount: 11000 },
+  { id: 'PJ10034', pooja: 'Ganesh Pooja', pandit: 'Pt. Suresh Tripathi', date: 'June 15, 2026', time: '11:00 AM', status: 'completed', amount: 3100 },
 ];
 
-const STATUS_STYLES: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  CONFIRMED: 'bg-blue-100 text-blue-800 border-blue-200',
-  COMPLETED: 'bg-green-100 text-green-800 border-green-200',
-  CANCELLED: 'bg-red-100 text-red-800 border-red-200',
+const STATUS_CONFIG = {
+  upcoming: { label: 'Upcoming', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  completed: { label: 'Completed', color: 'bg-green-100 text-green-700 border-green-200' },
+  cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-700 border-red-200' },
 };
 
-const TABS = ['My Bookings', 'Chat / Call', 'Reviews', 'Profile'];
+const NAV_ITEMS = [
+  { id: 'bookings', label: 'My Bookings', icon: '📋' },
+  { id: 'wishlist', label: 'Wishlist', icon: '❤️' },
+  { id: 'notifications', label: 'Notifications', icon: '🔔' },
+  { id: 'profile', label: 'My Profile', icon: '👤' },
+];
 
 export default function Dashboard() {
-  const { user, isAuthenticated, logout } = useAuth();
-  const [tab, setTab] = useState('My Bookings');
-  const [review, setReview] = useState({ rating: 5, comment: '' });
-  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('bookings');
 
-  if (!isAuthenticated) return <Navigate to="/auth" replace />;
+  const formatPrice = (p: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(p);
 
   return (
-    <div className="min-h-screen pt-24 bg-sand text-brown font-sans">
-      <DivineGradients />
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        
-        {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-kumkum to-saffron rounded-3xl p-6 md:p-8 mb-8 text-white flex items-center justify-between shadow-red relative overflow-hidden">
-          <div className="absolute right-0 bottom-0 translate-y-1/4 translate-x-1/4 text-white/5 font-serif text-[240px] pointer-events-none select-none">
-            ॐ
+    <div className="min-h-screen flex flex-col pt-20 bg-sand">
+      
+      {/* Header Banner */}
+      <div className="bg-gradient-divine text-white py-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,rgba(244,180,0,0.15)_0%,transparent_60%)] pointer-events-none"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-5 relative z-10">
+          <div className="w-16 h-16 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center font-serif font-bold text-3xl shadow-inner">
+            {user?.name?.charAt(0) || 'D'}
           </div>
-          <div className="relative z-10">
-            <p className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-1">Devotee Portal 🙏</p>
-            <h1 className="text-3xl font-bold font-serif">{user?.name}</h1>
-            <p className="text-white/80 text-sm mt-1">+91 {user?.phone}</p>
+          <div>
+            <p className="text-white/70 text-sm">Welcome back,</p>
+            <h1 className="text-2xl md:text-3xl font-serif font-bold">{user?.name || 'Devotee'}</h1>
           </div>
-          <div className="text-right hidden md:block relative z-10 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-4">
-            <p className="text-white/80 text-xs font-bold uppercase tracking-wider">Total Rituals Booked</p>
-            <p className="text-4xl font-bold font-serif mt-1">{MOCK_BOOKINGS.length}</p>
+          <div className="ml-auto hidden md:flex items-center gap-4">
+            <Link to="/poojas" className="btn-gold text-sm py-3">Book a Pooja</Link>
           </div>
         </div>
+      </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 bg-white border border-gold/15 rounded-2xl shadow-card p-1.5 mb-8 overflow-x-auto">
-          {TABS.map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-                tab === t ? 'bg-kumkum text-white shadow-md' : 'text-brown/60 hover:text-kumkum'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
+      <div className="flex-1 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-4 gap-8">
 
-        {/* My Bookings */}
-        {tab === 'My Bookings' && (
-          <div className="space-y-4 animate-fade-up">
-            {MOCK_BOOKINGS.map(b => (
-              <div key={b.id} className="bg-white rounded-3xl border border-gold/20 shadow-card p-6 flex flex-col md:flex-row md:items-center gap-6 hover:shadow-md transition-shadow">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-xl font-bold text-brown font-serif">{b.pooja}</h3>
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${STATUS_STYLES[b.status]}`}>{b.status}</span>
-                  </div>
-                  <p className="text-xs text-brown/60 font-medium">📅 {b.date} at {b.time} • 📍 {b.location}</p>
-                  <p className="text-xs text-brown/60 font-medium mt-1">🧑‍🏫 {b.pandit}</p>
-                </div>
-                <div className="flex items-center gap-4 justify-between md:justify-end">
-                  <div className="text-left md:text-right">
-                    <span className="text-[10px] text-brown/40 block font-semibold uppercase tracking-wider">Dakshina</span>
-                    <span className="font-bold text-kumkum text-lg">₹{b.amount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-brown/40 bg-sand px-2.5 py-1.5 rounded-lg border border-gold/10">{b.id}</span>
-                    {b.status === 'CONFIRMED' && (
-                      <button className="btn-divine text-xs py-2 px-4 rounded-xl">Track 🪔</button>
-                    )}
-                    {b.status === 'COMPLETED' && (
-                      <button onClick={() => setTab('Reviews')} className="btn-outline-gold text-xs py-2 px-4 rounded-xl">Review</button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-            <div className="text-center pt-4">
-              <Link to="/poojas" className="btn-divine inline-block text-xs">Book Another Pooja</Link>
+          {/* Sidebar */}
+          <aside className="lg:col-span-1">
+            <div className="card-divine p-4 sticky top-28">
+              <nav className="space-y-1">
+                {NAV_ITEMS.map(item => (
+                  <button key={item.id} onClick={() => setActiveTab(item.id)} className={`sidebar-item w-full text-left ${activeTab === item.id ? 'active' : ''}`}>
+                    <span className="text-xl">{item.icon}</span>
+                    {item.label}
+                  </button>
+                ))}
+                <div className="gold-divider-sm my-3"></div>
+                <button onClick={() => { logout(); navigate('/'); }} className="sidebar-item w-full text-left text-kumkum hover:bg-kumkum/10">
+                  <span className="text-xl">🚪</span> Logout
+                </button>
+              </nav>
             </div>
-          </div>
-        )}
+          </aside>
 
-        {/* Chat / Call */}
-        {tab === 'Chat / Call' && (
-          <div className="animate-fade-up bg-white rounded-3xl border border-gold/20 shadow-card p-6 md:p-8">
-            <h2 className="text-2xl font-bold text-brown font-serif mb-6">Chat & Call with Pandit Ji</h2>
-            {MOCK_BOOKINGS.filter(b => b.status === 'CONFIRMED').map(b => (
-              <div key={b.id} className="flex items-center justify-between p-5 bg-sand rounded-2xl border border-gold/10 mb-4 hover:border-gold/30 transition-colors">
-                <div>
-                  <p className="font-bold text-brown font-serif text-lg">{b.pandit}</p>
-                  <p className="text-xs text-brown/50 mt-0.5">For: {b.pooja} on {b.date}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-colors">📞 Call</button>
-                  <button className="bg-kumkum hover:bg-kumkum/90 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-colors">💬 Chat</button>
-                </div>
-              </div>
-            ))}
-            {MOCK_BOOKINGS.filter(b => b.status === 'CONFIRMED').length === 0 && (
-              <div className="text-center py-12 text-brown/40">
-                <span className="text-4xl block mb-3">💬</span>
-                <p className="text-sm font-medium">No active bookings. Pandit details will appear here once booking is confirmed.</p>
-              </div>
-            )}
-          </div>
-        )}
+          {/* Main Content */}
+          <main className="lg:col-span-3 space-y-6">
 
-        {/* Reviews */}
-        {tab === 'Reviews' && (
-          <div className="animate-fade-up bg-white rounded-3xl border border-gold/20 shadow-card p-6 md:p-8">
-            <h2 className="text-2xl font-bold text-brown font-serif mb-6">Devotee Review</h2>
-            {!reviewSubmitted ? (
-              <div className="space-y-4">
-                <p className="text-sm text-brown/70 font-medium">How was your Ganesh Pooja experience with Pt. Pt. Mahesh Trivedi?</p>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map(s => (
-                    <button key={s} onClick={() => setReview(r => ({ ...r, rating: s }))} className="text-3xl transition-transform hover:scale-110">
-                      {s <= review.rating ? '★' : '☆'}
-                    </button>
+            {/* ── BOOKINGS TAB ── */}
+            {activeTab === 'bookings' && (
+              <>
+                {/* Quick Stats */}
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: 'Total Bookings', value: BOOKINGS.length, icon: '📋', color: 'from-lotus to-white' },
+                    { label: 'Upcoming', value: BOOKINGS.filter(b => b.status === 'upcoming').length, icon: '📅', color: 'from-blue-50 to-white' },
+                    { label: 'Completed', value: BOOKINGS.filter(b => b.status === 'completed').length, icon: '✅', color: 'from-green-50 to-white' },
+                  ].map((s, i) => (
+                    <div key={i} className={`card-divine p-5 bg-gradient-to-br ${s.color} hover:-translate-y-1`}>
+                      <div className="text-3xl mb-2">{s.icon}</div>
+                      <div className="text-3xl font-serif font-bold text-brown">{s.value}</div>
+                      <div className="text-xs text-brown/60 font-medium mt-1">{s.label}</div>
+                    </div>
                   ))}
                 </div>
-                <textarea
-                  className="input-divine min-h-28 resize-none"
-                  placeholder="Share your spiritual experience about the pandit's knowledge, punctuality, and overall service..."
-                  value={review.comment}
-                  onChange={e => setReview(r => ({ ...r, comment: e.target.value }))}
-                />
-                <button onClick={() => setReviewSubmitted(true)} className="btn-divine text-xs py-3">Submit Review</button>
-              </div>
-            ) : (
-              <div className="text-center py-10">
-                <div className="text-4xl mb-3">🙏</div>
-                <h3 className="text-xl font-bold text-brown font-serif">Thank you for your feedback!</h3>
-                <p className="text-brown/50 text-xs mt-1">Your review helps other devotees select the best Pandit.</p>
+
+                {/* Bookings List */}
+                <div className="card-divine overflow-hidden">
+                  <div className="px-6 py-5 border-b border-gold/10 flex items-center justify-between">
+                    <h2 className="font-serif font-bold text-xl text-brown">My Bookings</h2>
+                    <Link to="/poojas" className="btn-outline-gold text-xs py-2 px-4">+ New Booking</Link>
+                  </div>
+                  <div className="divide-y divide-gold/10">
+                    {BOOKINGS.map(booking => (
+                      <div key={booking.id} className="p-6 hover:bg-sand/40 transition-colors group">
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-3 mb-2">
+                              <h3 className="font-bold text-brown text-lg group-hover:text-kumkum transition-colors">{booking.pooja}</h3>
+                              <span className={`badge-sacred text-[11px] border ${STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG].color}`}>
+                                {STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG].label}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-4 text-sm text-brown/60">
+                              <span className="flex items-center gap-1.5"><User size={13} /> {booking.pandit}</span>
+                              <span className="flex items-center gap-1.5"><Calendar size={13} /> {booking.date}</span>
+                              <span className="flex items-center gap-1.5"><Clock size={13} /> {booking.time}</span>
+                            </div>
+                            <p className="text-xs text-brown/40 mt-1">Booking ID: #{booking.id}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-serif font-bold text-xl text-kumkum">{formatPrice(booking.amount)}</p>
+                            {booking.status === 'upcoming' && (
+                              <button className="mt-2 text-xs text-red-500 hover:text-red-700 font-medium">Cancel Booking</button>
+                            )}
+                            {booking.status === 'completed' && (
+                              <div className="flex items-center gap-1 justify-end mt-1">
+                                {[...Array(5)].map((_, i) => <StarFilledIcon key={i} size={12} color="#F4B400" />)}
+                                <span className="text-xs text-brown/50 ml-1">5.0</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── WISHLIST TAB ── */}
+            {activeTab === 'wishlist' && (
+              <div className="card-divine p-12 text-center">
+                <div className="text-6xl mb-4">❤️</div>
+                <h3 className="font-serif font-bold text-2xl text-brown mb-3">Your Wishlist is Empty</h3>
+                <p className="text-brown/60 mb-8">Save your favourite poojas to easily book them later.</p>
+                <Link to="/poojas" className="btn-divine">Browse Poojas</Link>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Profile */}
-        {tab === 'Profile' && (
-          <div className="animate-fade-up bg-white rounded-3xl border border-gold/20 shadow-card p-6 md:p-8">
-            <h2 className="text-2xl font-bold text-brown font-serif mb-6">My Profile</h2>
-            <div className="flex items-center gap-5 mb-8">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-kumkum to-saffron flex items-center justify-center text-white text-3xl font-bold shadow-md border border-gold/20">
-                {user?.name?.charAt(0)}
+            {/* ── NOTIFICATIONS TAB ── */}
+            {activeTab === 'notifications' && (
+              <div className="card-divine overflow-hidden">
+                <div className="px-6 py-5 border-b border-gold/10">
+                  <h2 className="font-serif font-bold text-xl text-brown">Notifications</h2>
+                </div>
+                <div className="divide-y divide-gold/10">
+                  {[
+                    { icon: '🙏', title: 'Booking Confirmed', desc: 'Your Satyanarayan Katha on July 20 is confirmed.', time: '2 hours ago', isNew: true },
+                    { icon: '📲', title: 'Pandit Ji will call', desc: 'Pt. Ramesh Sharma will call you 1 hour before the ceremony.', time: '5 hours ago', isNew: true },
+                    { icon: '⭐', title: 'Rate your experience', desc: 'How was your Griha Pravesh with Pt. Arvind Joshi?', time: '3 days ago', isNew: false },
+                  ].map((n, i) => (
+                    <div key={i} className={`p-5 flex gap-4 hover:bg-sand/30 transition-colors ${n.isNew ? 'bg-lotus/30' : ''}`}>
+                      <div className="w-11 h-11 rounded-full bg-lotus border border-gold/20 flex items-center justify-center text-xl shrink-0">{n.icon}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-brown text-sm">{n.title}</p>
+                          {n.isNew && <span className="w-2 h-2 rounded-full bg-kumkum"></span>}
+                        </div>
+                        <p className="text-xs text-brown/60 leading-relaxed">{n.desc}</p>
+                        <p className="text-xs text-brown/40 mt-1">{n.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-brown font-serif">{user?.name}</h3>
-                <p className="text-xs text-brown/50 font-medium">+91 {user?.phone}</p>
-                <span className="text-[10px] bg-green-50 text-green-700 px-3 py-1 rounded-full font-bold mt-2 inline-block border border-green-200 uppercase tracking-wider">Devotee</span>
+            )}
+
+            {/* ── PROFILE TAB ── */}
+            {activeTab === 'profile' && (
+              <div className="card-divine p-8">
+                <h2 className="font-serif font-bold text-2xl text-brown mb-8">Edit Profile</h2>
+                <div className="flex items-center gap-6 mb-8 pb-8 border-b border-gold/10">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-divine flex items-center justify-center text-white font-serif font-bold text-3xl">
+                    {user?.name?.charAt(0) || 'D'}
+                  </div>
+                  <div>
+                    <p className="font-bold text-brown text-xl">{user?.name}</p>
+                    <p className="text-brown/60 text-sm">{user?.phone}</p>
+                    <button className="text-saffron text-xs font-medium mt-2 hover:underline">Change Photo</button>
+                  </div>
+                </div>
+                <form className="space-y-5">
+                  <div className="grid grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-semibold text-brown/70 mb-2 uppercase tracking-wider">Full Name</label>
+                      <input type="text" className="input-divine w-full" defaultValue={user?.name || ''} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-brown/70 mb-2 uppercase tracking-wider">Phone</label>
+                      <input type="tel" className="input-divine w-full" placeholder="+91 9876543210" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-brown/70 mb-2 uppercase tracking-wider">Email</label>
+                    <input type="email" className="input-divine w-full" defaultValue={user?.phone || ''} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-brown/70 mb-2 uppercase tracking-wider">Default City</label>
+                    <input type="text" className="input-divine w-full" placeholder="Your city" />
+                  </div>
+                  <button type="button" className="btn-divine">Save Changes</button>
+                </form>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-center mb-8">
-              <div className="bg-sand border border-gold/15 rounded-2xl p-4">
-                <div className="text-3xl font-bold text-kumkum font-serif">{MOCK_BOOKINGS.length}</div>
-                <div className="text-brown/50 text-xs font-semibold uppercase tracking-wider mt-1">Total Booked</div>
-              </div>
-              <div className="bg-green-50/40 border border-green-200/50 rounded-2xl p-4">
-                <div className="text-3xl font-bold text-green-700 font-serif">{MOCK_BOOKINGS.filter(b => b.status === 'COMPLETED').length}</div>
-                <div className="text-brown/50 text-xs font-semibold uppercase tracking-wider mt-1">Completed</div>
-              </div>
-            </div>
-            <button onClick={logout} className="btn-secondary w-full text-xs py-3.5 hover:bg-red-50 hover:border-red-400 hover:text-red-600 transition-colors">
-              Logout
-            </button>
-          </div>
-        )}
+            )}
+
+          </main>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }

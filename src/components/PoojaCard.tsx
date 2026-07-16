@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { DivineGradients, LotusIcon, StarIcon, ClockIcon, UserIcon } from './Icons';
+import { Clock, Users, MapPin, Heart } from 'lucide-react';
+import { StarFilledIcon } from './SacredIcons';
 
 interface PoojaCardProps {
   id: string;
@@ -8,82 +9,102 @@ interface PoojaCardProps {
   price: number;
   durationMinutes: number;
   panditsRequired: number;
-  rating?: number;
-  reviews?: number;
+  rating: number;
+  reviews: number;
+  category?: string;
+  image?: string;
+  isPopular?: boolean;
 }
 
-export default function PoojaCard({
-  id,
-  name,
-  description,
-  price,
-  durationMinutes,
-  panditsRequired,
-  rating = 4.9,
-  reviews = 124,
+export default function PoojaCard({ 
+  id, name, description, price, durationMinutes, panditsRequired, rating, reviews, category, image, isPopular 
 }: PoojaCardProps) {
+  
+  // Format price to Indian Rupees
+  const formattedPrice = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
+  }).format(price);
+
+  // Format duration
   const hours = Math.floor(durationMinutes / 60);
-  const mins = durationMinutes % 60;
-  const durationText = hours > 0 ? `${hours}h ${mins > 0 ? mins + 'm' : ''}` : `${mins}m`;
+  const minutes = durationMinutes % 60;
+  const durationText = hours > 0 
+    ? `${hours} hr${hours > 1 ? 's' : ''} ${minutes > 0 ? `${minutes} min` : ''}`
+    : `${minutes} min`;
 
   return (
-    <div className="group relative rounded-3xl bg-white border border-gold/20 overflow-hidden shadow-card hover:shadow-divine transition-all duration-300 flex flex-col h-full">
-      <DivineGradients />
+    <div className="card-pandit group flex flex-col h-full bg-white relative">
       
-      {/* Decorative background aura */}
-      <div className="absolute -top-16 -right-16 w-36 h-36 bg-gradient-to-br from-kumkum/10 to-saffron/10 rounded-full blur-xl group-hover:scale-150 transition-all duration-500"></div>
+      {/* Badges */}
+      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+        {isPopular && <span className="badge-featured shadow-md">⭐ Popular</span>}
+        {category && <span className="badge-sacred shadow-sm bg-white/90 backdrop-blur-sm">{category}</span>}
+      </div>
       
-      {/* Header section with category icon */}
-      <div className="p-6 pb-4 bg-gradient-to-b from-lotus/40 to-white flex items-center justify-between border-b border-gold/10">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-lotus to-white border border-gold/30 flex items-center justify-center shadow-sm">
-            <LotusIcon className="text-kumkum animate-breathe" size={24} />
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-saffron tracking-widest uppercase">VEDIC RITUAL</span>
-            <div className="flex items-center gap-1 mt-0.5">
-              <StarIcon className="text-haldi fill-haldi" size={12} />
-              <span className="text-xs font-bold text-brown">{rating.toFixed(1)}</span>
-              <span className="text-[10px] text-brown/50">({reviews})</span>
+      {/* Wishlist Button */}
+        <button className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center text-brown hover:text-kumkum transition-colors">
+          <Heart size={16} strokeWidth={1.5} />
+        </button>
+
+      {/* Image Area */}
+      <div className="h-48 w-full relative overflow-hidden bg-sand">
+        {image ? (
+          <img src={image} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-sand to-lotus flex items-center justify-center">
+            <div className="w-24 h-24 opacity-10">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C12 2 4 15 4 9C4 7 6 5 8 6C9 6.5 10 7.5 11 9C11.5 7 12.5 5 14 4.5C16 4 18 5.5 18 8C18 12 12 20 12 20Z"/></svg>
             </div>
           </div>
-        </div>
-        <div className="text-right">
-          <span className="text-[10px] text-brown/50 block font-medium">Starting from</span>
-          <span className="text-xl font-bold text-kumkum">₹{price.toLocaleString()}</span>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
+        
+        {/* Rating overlay */}
+        <div className="absolute bottom-3 left-4 flex items-center gap-1.5 text-white">
+          <StarFilledIcon size={14} color="#F4D483" />
+          <span className="font-bold text-sm leading-none">{rating.toFixed(1)}</span>
+          <span className="text-xs text-white/80 leading-none">({reviews})</span>
         </div>
       </div>
 
-      {/* Body section */}
-      <div className="p-6 pt-4 flex-1 flex flex-col justify-between">
-        <div>
-          <h3 className="text-xl font-bold text-brown font-serif mb-2 group-hover:text-kumkum transition-colors">
-            {name}
-          </h3>
-          <p className="text-brown/70 text-xs leading-relaxed line-clamp-3 mb-5">
-            {description}
-          </p>
+      {/* Content Area */}
+      <div className="p-5 flex flex-col flex-1">
+        <h3 className="font-serif font-bold text-xl text-deep-brown mb-2 group-hover:text-kumkum transition-colors line-clamp-1">{name}</h3>
+        <p className="text-sm text-brown/70 line-clamp-2 mb-5 flex-1 leading-relaxed">
+          {description}
+        </p>
+
+        {/* Info Tags */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-brown/80">
+            <Clock size={14} strokeWidth={1.5} className="text-gold" />
+            {durationText}
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-medium text-brown/80">
+            <Users size={14} strokeWidth={1.5} className="text-gold" />
+            {panditsRequired} Pandit{panditsRequired > 1 ? 's' : ''}
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-medium text-brown/80">
+            <MapPin size={14} strokeWidth={1.5} className="text-gold" />
+            Home / Temple
+          </div>
         </div>
 
-        <div>
-          {/* Metadata Chips */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sand border border-gold/10 text-brown/70 text-xs font-medium">
-              <ClockIcon className="text-saffron" size={14} />
-              <span>{durationText}</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sand border border-gold/10 text-brown/70 text-xs font-medium">
-              <UserIcon className="text-saffron" size={14} />
-              <span>{panditsRequired} Pandit{panditsRequired > 1 ? 's' : ''}</span>
-            </div>
-          </div>
+        <div className="gold-divider-sm mb-4 opacity-50"></div>
 
-          {/* Glowing Divine CTA Button */}
-          <Link
+        {/* Footer */}
+        <div className="flex items-center justify-between mt-auto">
+          <div>
+            <p className="text-[10px] text-brown/50 uppercase tracking-widest font-semibold mb-0.5">Starting From</p>
+            <p className="price-tag text-xl leading-none">{formattedPrice}</p>
+          </div>
+          <Link 
             to={`/book/${id}`}
-            className="w-full text-center block btn-divine text-xs py-3.5"
+            className="btn-outline-gold px-5 py-2 text-xs hover:bg-gradient-gold hover:text-white hover:border-transparent transition-all border-gold/50"
           >
-            Book Pooja Ritual 🪔
+            Book Now
           </Link>
         </div>
       </div>

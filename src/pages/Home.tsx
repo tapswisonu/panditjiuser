@@ -1,320 +1,272 @@
+import { useState, useEffect } from 'react';
+import { MapPin, Search, ShieldCheck } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
 import PoojaCard from '../components/PoojaCard';
+import CountdownTimer from '../components/CountdownTimer';
+import Footer from '../components/Footer';
+import { FloatingPetals, MandalaRing, IncenseSmoke, TempleSilhouette, RangoliCorner } from '../components/DecorativeElements';
+import { OmIcon, StarFilledIcon } from '../components/SacredIcons';
 
-const FLOATING = [
-  { emoji: '🪷', top: '10%', left: '5%',  delay: '0s',   size: 'text-5xl', anim: 'animate-float' },
-  { emoji: '🌸', top: '20%', right: '8%', delay: '1s',   size: 'text-4xl', anim: 'animate-float-r' },
-  { emoji: '🔔', top: '45%', left: '3%',  delay: '0.5s', size: 'text-3xl', anim: 'animate-float' },
-  { emoji: '🕯️', top: '55%', right: '5%', delay: '2s',   size: 'text-4xl', anim: 'animate-diya' },
-  { emoji: '🌺', top: '70%', left: '8%',  delay: '1.5s', size: 'text-3xl', anim: 'animate-float-r' },
-  { emoji: '🪔', top: '15%', right: '20%',delay: '3s',   size: 'text-3xl', anim: 'animate-diya' },
-  { emoji: '✨', top: '80%', right: '10%',delay: '0.8s', size: 'text-2xl', anim: 'animate-breathe' },
-];
-
-const TRUST = [
-  { icon: '✅', label: 'Verified Pandits', value: '500+' },
-  { icon: '📍', label: 'Cities Served',    value: '50+' },
-  { icon: '⭐', label: 'Average Rating',   value: '4.9' },
-  { icon: '⚡', label: 'Instant Booking',  value: '< 2 min' },
-];
-
+// Mock Data
 const MOCK_POOJAS = [
-  { id: '1', name: 'Satyanarayan Katha', description: 'Sacred Vishnu pooja for prosperity, blessings and peace in the household.', price: 5100, durationMinutes: 180, panditsRequired: 1, rating: 4.9, reviews: 342 },
-  { id: '2', name: 'Griha Pravesh',      description: 'Divine house-warming ceremony performed by experienced Vedic pandits.', price: 11000, durationMinutes: 240, panditsRequired: 2, rating: 4.8, reviews: 184 },
-  { id: '3', name: 'Ganesh Pooja',       description: 'Remove all obstacles with the blessings of Lord Ganesha.', price: 3100, durationMinutes: 90, panditsRequired: 1, rating: 5.0, reviews: 456 },
-  { id: '4', name: 'Rudrabhishek',       description: 'Powerful Shiva pooja with Panchamrit Abhishek for divine grace.', price: 7500, durationMinutes: 120, panditsRequired: 2, rating: 4.9, reviews: 267 },
-  { id: '5', name: 'Marriage Pooja',     description: 'Complete Vedic wedding ceremony with all sacred rituals.', price: 21000, durationMinutes: 480, panditsRequired: 3, rating: 4.9, reviews: 198 },
-  { id: '6', name: 'Hawan',              description: 'Sacred fire ritual purifying the environment and attracting positive energy.', price: 4500, durationMinutes: 120, panditsRequired: 1, rating: 4.8, reviews: 312 },
+  { id: '1', name: 'Satyanarayan Katha', description: 'Sacred Vishnu pooja for prosperity, blessings and peace in the household.', price: 5100, durationMinutes: 180, panditsRequired: 1, rating: 4.9, reviews: 342, category: 'Household', image: 'https://images.unsplash.com/photo-1604928141064-207cea6f5822?q=80&w=600&auto=format&fit=crop', isPopular: true },
+  { id: '2', name: 'Griha Pravesh', description: 'Divine house-warming ceremony performed by experienced Vedic pandits.', price: 11000, durationMinutes: 240, panditsRequired: 2, rating: 4.8, reviews: 184, category: 'Ceremony', image: 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?q=80&w=600&auto=format&fit=crop', isPopular: true },
+  { id: '3', name: 'Ganesh Pooja', description: 'Remove all obstacles with the blessings of Lord Ganesha.', price: 3100, durationMinutes: 90, panditsRequired: 1, rating: 5.0, reviews: 456, category: 'Festival', image: 'https://images.unsplash.com/photo-1560067174-c5a3a8f37060?q=80&w=600&auto=format&fit=crop' },
 ];
 
-const TESTIMONIALS = [
-  { name: 'Priya Sharma', city: 'Mumbai', text: 'The experience was divine. Pt. Ramesh conducted our Griha Pravesh with so much devotion. Highly recommended!', rating: 5, pooja: 'Griha Pravesh' },
-  { name: 'Rajesh Patel', city: 'Ahmedabad', text: 'Transparent pricing, punctual pandit, and flawless ceremony. This is how a pooja should be!', rating: 5, pooja: 'Satyanarayan Katha' },
-  { name: 'Sunita Agarwal', city: 'Jaipur', text: 'Beautiful online booking experience. The Rudrabhishek was conducted perfectly. My family was in tears of joy.', rating: 5, pooja: 'Rudrabhishek' },
+const CATEGORIES = [
+  { name: 'Griha Pravesh', icon: '🏠' },
+  { name: 'Marriage', icon: '💍' },
+  { name: 'Hawan', icon: '🔥' },
+  { name: 'Navgrah Shanti', icon: '✨' },
+  { name: 'Satyanarayan', icon: '🕉️' },
+  { name: 'Online Pooja', icon: '💻' },
 ];
 
-const FEATURES = [
-  { icon: '🔍', title: 'Verified Pandits', desc: 'Every pandit is background-checked, document-verified and trained in Vedic traditions.' },
-  { icon: '💰', title: 'Transparent Pricing', desc: 'No hidden charges. Full price disclosed before you book. No surprises.' },
-  { icon: '📱', title: 'Book in Minutes', desc: 'Simple 5-step booking. Choose pooja, date, location and pay online instantly.' },
-  { icon: '🌍', title: 'Online & Home Visit', desc: 'Book for your home, at a temple, or join digitally from anywhere in the world.' },
+const TRUST_BADGES = [
+  { icon: <StarFilledIcon size={24} color="#F4B400" />, label: '4.9/5 Rating' },
+  { icon: <ShieldCheck size={24} color="#4CAF50" />, label: '5000+ Verified Pandits' },
+  { icon: <MapPin size={24} color="#C62828" />, label: '100+ Cities' },
+  { icon: <div className="text-2xl">🔒</div>, label: 'Secure Payments' },
 ];
 
 export default function Home() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('All');
+
+  // Intersection Observer for scroll animations
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+
+    document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-sand overflow-hidden">
-
-      {/* ── HERO ──────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex items-center justify-center pt-20">
-        {/* Background Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#6D1515] via-[#C62828] to-[#FF8F00]"></div>
-
-        {/* Light rays */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="absolute top-1/2 left-1/2 w-px h-full opacity-5"
-              style={{
-                background: 'linear-gradient(to bottom, rgba(255,215,0,0.8), transparent)',
-                transform: `rotate(${i * 30}deg) translateY(-50%)`,
-                transformOrigin: 'top center',
-                animation: `lightRay ${6 + i}s ease-in-out infinite`,
-                animationDelay: `${i * 0.5}s`,
-              }}></div>
-          ))}
+    <div className="min-h-screen flex flex-col pt-20"> {/* PT-20 to account for fixed navbar */}
+      
+      {/* ── 1. PREMIUM HERO SECTION ────────────────────────────────────────── */}
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-hero-gradient">
+        
+        {/* Decorative Background Elements */}
+        <div className="absolute inset-0 z-0 flex items-center justify-center opacity-5 pointer-events-none">
+          <OmIcon size={600} color="#FFFFFF" />
         </div>
+        
+        <MandalaRing className="w-[800px] h-[800px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gold opacity-[0.04]" />
+        
+        {/* Subtle Radial Lighting overlay for that glowing effect */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(244,180,0,0.15)_0%,transparent_60%)] pointer-events-none"></div>
 
-        {/* Om watermark */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-          <span className="text-white opacity-5 font-serif animate-breathe"
-            style={{ fontSize: 'clamp(200px,30vw,400px)', fontFamily: 'Cormorant Garamond, serif' }}>
-            ॐ
-          </span>
-        </div>
-
-        {/* Mandala Ring */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 md:w-[600px] md:h-[600px] opacity-[0.07] animate-spin-slow pointer-events-none">
-          <div className="w-full h-full rounded-full border-4 border-gold"></div>
-          <div className="absolute inset-4 rounded-full border-2 border-haldi"></div>
-          <div className="absolute inset-8 rounded-full border border-saffron"></div>
-          {[...Array(12)].map((_, i) => (
-            <div key={i} className="absolute top-1/2 left-1/2 w-0.5 h-1/2 bg-gold opacity-50"
-              style={{ transform: `rotate(${i * 30}deg)`, transformOrigin: 'top center', marginLeft: '-1px' }}></div>
-          ))}
-        </div>
-
-        {/* Floating elements */}
-        {FLOATING.map((el, i) => (
-          <div key={i} className={`absolute pointer-events-none ${el.size} ${el.anim}`}
-            style={{ top: el.top, left: el.left, right: el.right, animationDelay: el.delay }}>
-            {el.emoji}
-          </div>
-        ))}
+        <TempleSilhouette className="text-deep-maroon/20 h-48" />
+        <IncenseSmoke className="bottom-0 left-1/4 h-64 w-32" />
+        <IncenseSmoke className="bottom-0 right-1/4 h-64 w-32" />
+        <FloatingPetals count={20} />
 
         {/* Content */}
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <div className="animate-fade-up stagger-1 inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-5 py-2 text-white/90 text-sm mb-8">
-            <span className="animate-breathe text-lg">🪷</span>
-            <span>Trusted by 50,000+ devotees across India</span>
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 py-12 flex flex-col items-center text-center">
+          
+          <div className="animate-fade-up stagger-1 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-sm mb-8 font-medium shadow-glow">
+            <span className="text-gold">✨</span> Trusted by 100,000+ Devotees
           </div>
 
-          <h1 className="animate-fade-up stagger-2 text-5xl md:text-7xl font-bold text-white leading-tight mb-6 font-serif">
-            Book Verified<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-haldi to-sand">
-              Pandit Ji
-            </span> Online
+          <h1 className="animate-fade-up stagger-2 text-5xl md:text-7xl lg:text-8xl font-serif font-bold text-white leading-[1.1] mb-6 hero-text-shadow">
+            Experience Divine <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold via-haldi to-white animate-gold-shimmer">
+              Spiritual Harmony
+            </span>
           </h1>
 
-          <p className="animate-fade-up stagger-3 text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Transparent pricing • Certified pandits • Instant booking<br />
-            For home visits, temple ceremonies, or online poojas
+          <p className="animate-fade-up stagger-3 text-lg md:text-xl text-white/80 max-w-3xl mx-auto mb-12 font-light leading-relaxed">
+            Book highly qualified, verified Vedic Pandit Ji for all your sacred rituals. <br className="hidden md:block" />
+            Transparent pricing, complete samagri, and authentic ceremonies at your doorstep.
           </p>
 
-          {/* Search Bar */}
-          <div className="animate-fade-up stagger-4 flex flex-col sm:flex-row gap-3 max-w-xl mx-auto mb-12">
-            <div className="flex-1 relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg">🔍</span>
-              <input
-                type="text"
-                placeholder="Search pooja (e.g. Griha Pravesh...)"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full pl-11 pr-5 py-4 rounded-2xl bg-white/90 backdrop-blur-sm border border-white/30 text-brown placeholder-brown/50 outline-none focus:bg-white transition-all text-sm shadow-xl"
-              />
+          {/* Premium Search Bar */}
+          <div className="animate-fade-up stagger-4 w-full max-w-4xl mx-auto mb-16 relative group">
+            <div className="absolute inset-0 bg-gold blur-2xl opacity-20 group-hover:opacity-30 transition-opacity rounded-full"></div>
+            <div className="relative flex flex-col md:flex-row items-center bg-white/10 backdrop-blur-xl border border-white/30 rounded-[2rem] p-2 shadow-2xl">
+              
+              {/* Category Dropdown */}
+              <div className="w-full md:w-auto border-b md:border-b-0 md:border-r border-white/20 px-4 py-3 flex items-center justify-between cursor-pointer">
+                <select 
+                  className="bg-transparent text-white/90 text-sm font-medium outline-none cursor-pointer appearance-none pr-8 w-full md:w-36"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  <option value="All" className="text-deep-brown">All Poojas</option>
+                  <option value="Home" className="text-deep-brown">Home Rituals</option>
+                  <option value="Temple" className="text-deep-brown">Temple Poojas</option>
+                  <option value="Online" className="text-deep-brown">e-Poojas</option>
+                </select>
+                <span className="text-white/70 pointer-events-none -ml-6 text-xs">▼</span>
+              </div>
+
+              {/* Search Input */}
+              <div className="flex-1 flex items-center px-4 py-3 w-full">
+                <Search size={20} className="text-white/70 mr-3" />
+                <input 
+                  type="text" 
+                  placeholder="Search for Griha Pravesh, Satyanarayan Katha..." 
+                  className="w-full bg-transparent text-white placeholder-white/60 outline-none text-base"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <button className="ml-2 text-white/70 hover:text-white transition-colors" title="Voice Search">
+                  🎙️
+                </button>
+              </div>
+
+              {/* Search CTA */}
+              <button 
+                onClick={() => navigate('/poojas')}
+                className="w-full md:w-auto mt-2 md:mt-0 bg-gradient-gold text-deep-brown font-bold text-sm px-8 py-4 rounded-full hover:scale-105 transition-all shadow-gold flex items-center justify-center gap-2 group/btn"
+              >
+                Find Pandit Ji
+                <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
+              </button>
             </div>
-            <button onClick={() => navigate('/poojas')}
-              className="btn-outline-gold bg-white/10 backdrop-blur-sm border-white text-white hover:bg-white hover:text-brown font-semibold px-8 py-4 rounded-2xl whitespace-nowrap">
-              Find Pandits →
-            </button>
           </div>
 
-          {/* Trust Badges */}
-          <div className="animate-fade-up stagger-5 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto">
-            {TRUST.map(t => (
-              <div key={t.label} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 text-center">
-                <div className="text-xl mb-1">{t.icon}</div>
-                <div className="text-white font-bold text-lg leading-none">{t.value}</div>
-                <div className="text-white/70 text-xs mt-0.5">{t.label}</div>
+          {/* Trust Badges - Premium Glass Cards */}
+          <div className="animate-fade-up stagger-5 grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-5xl mx-auto">
+            {TRUST_BADGES.map((badge, idx) => (
+              <div key={idx} className="bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-white/10 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                  {badge.icon}
+                </div>
+                <span className="text-white/90 text-sm font-medium">{badge.label}</span>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Bottom wave */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 80" fill="none" className="w-full">
-            <path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="#FFF8EE"/>
+        </div>
+        
+        {/* Bottom curve divider */}
+        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-none z-10">
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-12 md:h-20 fill-sand">
+            <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.08,130.83,115.35,189.92,97.63,235.8,83.84,279.7,70.5,321.39,56.44Z"></path>
           </svg>
         </div>
       </section>
 
-      {/* ── FEATURES ──────────────────────────────────────── */}
-      <section className="py-20 bg-sand">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <p className="text-saffron font-semibold text-sm tracking-widest uppercase mb-3">Why Choose Us</p>
-            <h2 className="section-title">India's Most Trusted<br />Pandit Booking Platform</h2>
-            <div className="gold-divider max-w-24 mx-auto mt-4"></div>
+      {/* ── 2. POPULAR CATEGORIES ────────────────────────────────────────── */}
+      <section className="py-24 bg-sand relative overflow-hidden">
+        <RangoliCorner position="top-left" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+          
+          <div className="text-center mb-16 reveal">
+            <h2 className="section-title">Sacred Offerings</h2>
+            <div className="gold-divider max-w-[120px] mx-auto mt-6"></div>
+            <p className="section-subtitle mt-4 max-w-2xl mx-auto">Explore our wide range of authentic Vedic rituals performed with devotion</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {FEATURES.map((f, i) => (
-              <div key={f.title} className={`card-divine p-7 text-center group animate-fade-up stagger-${i+1}`}>
-                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-lotus to-sand flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-300 shadow-card">
-                  {f.icon}
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 reveal">
+            {CATEGORIES.map((cat, i) => (
+              <div key={i} className="category-card group reveal" style={{ transitionDelay: `${i * 100}ms` }}>
+                <div className="feature-icon-wrap text-3xl">
+                  {cat.icon}
                 </div>
-                <h3 className="font-bold text-brown mb-2 text-lg font-serif">{f.title}</h3>
-                <p className="text-brown/60 text-sm leading-relaxed">{f.desc}</p>
-                <div className="mt-4 h-0.5 w-12 mx-auto rounded-full bg-gradient-to-r from-kumkum to-saffron opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <h3 className="font-semibold text-brown text-sm">{cat.name}</h3>
+              </div>
+            ))}
+          </div>
+          
+        </div>
+      </section>
+
+      {/* ── 3. FEATURED POOJAS ──────────────────────────────────────────── */}
+      <section className="py-24 bg-white relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col md:flex-row items-end justify-between mb-12 reveal">
+            <div>
+              <span className="section-tag">Most Booked</span>
+              <h2 className="section-title">Trending Poojas</h2>
+            </div>
+            <Link to="/poojas" className="btn-ghost mt-4 md:mt-0">
+              View All Services →
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 reveal">
+            {MOCK_POOJAS.map((pooja, i) => (
+              <div key={pooja.id} className="reveal-up" style={{ transitionDelay: `${i * 150}ms` }}>
+                {/* Note: In a real app we'd update PoojaCard component. Using it as is for now, but wrapped in animation */}
+                <PoojaCard {...pooja} />
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── POOJA PACKAGES ───────────────────────────────── */}
-      <section className="py-20" style={{ background: 'linear-gradient(180deg, #FFF8EE 0%, #FDECEC 100%)' }}>
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <p className="text-saffron font-semibold text-sm tracking-widest uppercase mb-3">Sacred Rituals</p>
-            <h2 className="section-title">Popular Pooja Packages</h2>
-            <div className="gold-divider max-w-24 mx-auto mt-4"></div>
-            <p className="section-subtitle mt-4 max-w-xl mx-auto">Carefully curated Vedic rituals performed by certified pandits with complete samagri</p>
+      {/* ── 4. HOW IT WORKS (Timeline) ──────────────────────────────────── */}
+      <section className="py-24 bg-sand relative overflow-hidden">
+        <div className="absolute inset-0 bg-sacred-pattern opacity-50"></div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+          <div className="text-center mb-20 reveal">
+            <span className="section-tag">Simple & Secure</span>
+            <h2 className="section-title">How It Works</h2>
+            <div className="gold-divider max-w-[120px] mx-auto mt-6"></div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-            {MOCK_POOJAS.map(p => <PoojaCard key={p.id} {...p} />)}
-          </div>
-
-          <div className="text-center">
-            <Link to="/poojas" className="btn-divine inline-flex items-center gap-2">
-              View All Poojas <span>→</span>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ──────────────────────────────────── */}
-      <section className="py-20 bg-sand relative overflow-hidden">
-        <div className="om-watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">ॐ</div>
-        <div className="max-w-6xl mx-auto px-4 relative z-10">
-          <div className="text-center mb-12">
-            <p className="text-saffron font-semibold text-sm tracking-widest uppercase mb-3">Devotee Stories</p>
-            <h2 className="section-title">What Our Devotees Say</h2>
-            <div className="gold-divider max-w-24 mx-auto mt-4"></div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={t.name} className={`card-divine p-7 relative animate-fade-up stagger-${i+1}`}>
-                {/* Decorative quote */}
-                <div className="absolute top-5 right-6 text-5xl text-gold/20 font-serif leading-none select-none">"</div>
-                {/* Stars */}
-                <div className="flex mb-4">
-                  {[...Array(t.rating)].map((_, j) => <span key={j} className="text-haldi">★</span>)}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {[
+              { step: 1, title: 'Select Pooja', desc: 'Browse our list of verified poojas and rituals.', icon: '🔍' },
+              { step: 2, title: 'Choose Time', desc: 'Pick a date and time that suits your muhurat.', icon: '📅' },
+              { step: 3, title: 'Secure Payment', desc: 'Pay online securely to confirm your booking.', icon: '💳' },
+              { step: 4, title: 'Pandit Arrives', desc: 'Experienced Pandit Ji arrives with complete samagri.', icon: '🙏' },
+            ].map((s, i) => (
+              <div key={i} className="timeline-step reveal" style={{ transitionDelay: `${i * 200}ms` }}>
+                <div className="timeline-step-number">{s.step}</div>
+                {i < 3 && <div className="timeline-connector hidden md:block"></div>}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gold/10 w-full mt-4 hover:-translate-y-2 transition-transform">
+                  <div className="text-3xl mb-3">{s.icon}</div>
+                  <h3 className="font-bold text-brown text-lg mb-2">{s.title}</h3>
+                  <p className="text-sm text-brown/70">{s.desc}</p>
                 </div>
-                <p className="text-brown/70 text-sm leading-relaxed mb-6 italic">"{t.text}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-kumkum to-saffron flex items-center justify-center text-white font-bold text-lg border-2 border-gold/30 shadow-gold">
-                    {t.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-bold text-brown font-serif">{t.name}</p>
-                    <p className="text-xs text-saffron">{t.pooja} • {t.city}</p>
-                  </div>
-                </div>
-                {/* Lotus corner */}
-                <div className="absolute bottom-4 right-5 text-2xl opacity-20 select-none">🪷</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── CTA ────────────────────────────────────────────── */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#6D1515] via-kumkum to-[#FF8F00]"></div>
-        {/* Om */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-          <span className="text-white opacity-[0.04] font-serif animate-breathe" style={{ fontSize: '400px' }}>ॐ</span>
-        </div>
-        {/* Hanging bells */}
-        <div className="absolute top-0 left-0 right-0 flex justify-around px-8">
-          {['🔔','🔔','🔔','🔔','🔔'].map((b, i) => (
-            <div key={i} className="animate-float text-2xl opacity-60" style={{ animationDelay: `${i * 0.4}s` }}>{b}</div>
-          ))}
-        </div>
-
-        <div className="relative z-10 text-center px-4">
-          <p className="text-haldi font-semibold tracking-widest uppercase text-sm mb-4">Start Your Spiritual Journey</p>
-          <h2 className="text-4xl md:text-5xl font-bold text-white font-serif mb-4">Book Your Sacred Ritual Today</h2>
-          <p className="text-white/70 text-lg mb-10 max-w-xl mx-auto">Join 50,000+ devotees who trust Pandit Ji for all their spiritual needs — with transparent pricing and verified pandits</p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link to="/poojas"
-              className="inline-flex items-center gap-2 bg-white text-kumkum font-bold px-10 py-4 rounded-full hover:shadow-2xl hover:scale-105 transition-all duration-300 animate-glow">
-              <span className="text-xl">🪔</span> Browse Poojas
-            </Link>
-            <Link to="/auth"
-              className="inline-flex items-center gap-2 border-2 border-white text-white font-bold px-10 py-4 rounded-full hover:bg-white/10 transition-all duration-300">
-              Create Free Account
-            </Link>
+      {/* ── 5. UPCOMING FESTIVALS ────────────────────────────────────────── */}
+      <section className="py-24 bg-maroon-gradient text-white relative overflow-hidden">
+        <MandalaRing className="w-[600px] h-[600px] -right-40 top-0 text-white opacity-10" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 flex flex-col lg:flex-row items-center gap-12">
+          
+          <div className="lg:w-1/2 reveal-left">
+            <span className="text-gold font-bold tracking-widest text-sm uppercase mb-4 block">Upcoming Festival</span>
+            <h2 className="text-5xl lg:text-6xl font-serif font-bold mb-6">Maha Shivaratri</h2>
+            <p className="text-white/80 text-lg mb-8 max-w-lg">
+              Book a special Rudrabhishek or Shiva Pooja for your home. Our expert Pandits will perform the rituals according to authentic Vedic traditions.
+            </p>
+            <div className="flex gap-4">
+              <button className="btn-gold">Book Rudrabhishek</button>
+              <button className="btn-outline-gold border-white text-white hover:bg-white hover:text-kumkum">Learn More</button>
+            </div>
           </div>
+
+          <div className="lg:w-1/2 reveal-right w-full">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 p-10 rounded-3xl text-center shadow-2xl">
+              <CountdownTimer targetDate="2026-03-08T00:00:00" title="Time Remaining" />
+            </div>
+          </div>
+
         </div>
       </section>
 
-      {/* ── FOOTER ────────────────────────────────────────── */}
-      <footer style={{ background: 'linear-gradient(135deg, #1A0A00, #3E2723, #4E342E)' }} className="text-white py-16">
-        <div className="max-w-6xl mx-auto px-4">
-          {/* Gold divider */}
-          <div className="gold-divider mb-10"></div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl animate-breathe">🪷</span>
-                <div>
-                  <p className="text-xl font-bold font-serif text-gold">ॐ Pandit Ji</p>
-                  <p className="text-xs text-saffron tracking-widest">DIVINE SERVICES</p>
-                </div>
-              </div>
-              <p className="text-white/50 text-sm leading-relaxed max-w-sm">
-                India's most trusted platform for booking verified Pandits for all sacred rituals. 
-                Transparent pricing, authentic pandits, and instant booking.
-              </p>
-              <div className="flex gap-3 mt-5">
-                {['📘','📷','🐦','▶️'].map((s, i) => (
-                  <button key={i} className="w-9 h-9 rounded-full bg-white/10 hover:bg-gold transition-all duration-200 flex items-center justify-center text-sm">
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h3 className="font-bold text-gold mb-4 font-serif">Services</h3>
-              <ul className="space-y-2 text-white/50 text-sm">
-                {['Griha Pravesh', 'Marriage Pooja', 'Satyanarayan Katha', 'Rudrabhishek', 'Hawan & Yagya'].map(s => (
-                  <li key={s} className="hover:text-saffron cursor-pointer transition-colors">{s}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-bold text-gold mb-4 font-serif">Quick Links</h3>
-              <ul className="space-y-2 text-white/50 text-sm">
-                {['About Us', 'Find Pandit', 'Become a Pandit', 'Blog', 'Support'].map(l => (
-                  <li key={l} className="hover:text-saffron cursor-pointer transition-colors">{l}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <div className="gold-divider mb-6"></div>
-          <div className="flex flex-col md:flex-row items-center justify-between text-white/30 text-xs gap-3">
-            <span>© 2025 Pandit Ji. All rights reserved. Made with 🪷 in India.</span>
-            <span>Privacy Policy • Terms of Service • Refund Policy</span>
-          </div>
-        </div>
-      </footer>
+      {/* ── 6. FOOTER ────────────────────────────────────────────────────── */}
+      <Footer />
+      
     </div>
   );
 }

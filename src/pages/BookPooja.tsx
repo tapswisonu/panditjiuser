@@ -1,272 +1,300 @@
 import { useState } from 'react';
+import { Check, Clock, User } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import PanditCard from '../components/PanditCard';
-import { useAuth } from '../context/AuthContext';
-import { DivineGradients, ShieldCheckIcon, CoinsIcon, TempleIcon, VideoIcon } from '../components/Icons';
+import Footer from '../components/Footer';
+import { OmIcon } from '../components/SacredIcons';
 
-const POOJAS_DATA: Record<string, { name: string; description: string; price: number; durationMinutes: number; panditsRequired: number; samagri: string[] }> = {
-  '1': { name: 'Satyanarayan Katha', description: 'A sacred pooja dedicated to Lord Vishnu, performed for prosperity and blessings in all endeavors of life.', price: 5100, durationMinutes: 180, panditsRequired: 1, samagri: ['Panchamrit', 'Tulsi leaves', 'Flowers', 'Dhoop', 'Incense', 'Banana', 'Coconut', 'Yellow cloth'] },
-  '2': { name: 'Griha Pravesh', description: 'House warming ceremony to bless your new home with peace, prosperity and positive energy.', price: 11000, durationMinutes: 240, panditsRequired: 2, samagri: ['Mango leaves', 'Coconut', 'Flowers', 'Rice', 'Turmeric', 'Kumkum', 'Ghee', 'Dhoop', 'Red cloth'] },
-  '3': { name: 'Ganesh Pooja', description: 'Remove obstacles from your life with Lord Ganesha\'s divine blessings.', price: 3100, durationMinutes: 90, panditsRequired: 1, samagri: ['Modak', 'Durva grass', 'Red flowers', 'Dhoop', 'Coconut', 'Incense'] },
-  '4': { name: 'Rudrabhishek', description: 'Powerful Shiva pooja with Panchamrit Abhishek. Brings health, wealth and removes negativity.', price: 7500, durationMinutes: 120, panditsRequired: 2, samagri: ['Milk', 'Honey', 'Curd', 'Ghee', 'Sugar', 'Bel leaves', 'Dhatura', 'Flowers'] },
-  '5': { name: 'Hawan', description: 'Sacred fire ritual purifying the environment.', price: 4500, durationMinutes: 120, panditsRequired: 1, samagri: ['Samagri mix', 'Ghee', 'Hawan Kund', 'Mango wood', 'Sesame seeds'] },
-};
-
-const MOCK_PANDITS = [
-  { id: 'p1', name: 'Pt. Ramesh Sharma', expertise: ['Satyanarayan', 'Hawan', 'Griha Pravesh'], experienceYears: 15, isVerified: true, rating: 4.9, reviewCount: 124 },
-  { id: 'p2', name: 'Pt. Suresh Joshi', expertise: ['Navgrah', 'Marriage', 'Rudrabhishek'], experienceYears: 22, isVerified: true, rating: 4.8, reviewCount: 89 },
-  { id: 'p3', name: 'Pt. Mahesh Trivedi', expertise: ['Griha Pravesh', 'Ganesh Pooja', 'Hawan'], experienceYears: 10, isVerified: true, rating: 4.7, reviewCount: 67 },
+const STEPS = [
+  { label: 'Pooja', icon: '🕉️' },
+  { label: 'Date & Time', icon: '📅' },
+  { label: 'Location', icon: '📍' },
+  { label: 'Payment', icon: '💳' },
+  { label: 'Confirm', icon: '✅' },
 ];
 
-const STEPS = ['Pooja Details', 'Date & Time', 'Location', 'Select Pandit', 'Confirm'];
+const POOJAS = [
+  { id: '1', name: 'Satyanarayan Katha', duration: '3 hrs', price: 5100, pandits: 1 },
+  { id: '2', name: 'Griha Pravesh', duration: '4–6 hrs', price: 11000, pandits: 2 },
+  { id: '3', name: 'Ganesh Pooja', duration: '1.5 hrs', price: 3100, pandits: 1 },
+  { id: '4', name: 'Rudrabhishek', duration: '2 hrs', price: 7500, pandits: 2 },
+];
+
+const TIME_SLOTS = ['07:00 AM', '09:00 AM', '11:00 AM', '02:00 PM', '04:00 PM', '06:00 PM'];
+
+const PAYMENT_METHODS = [
+  { id: 'upi', label: 'UPI / GPay / PhonePe', icon: '📱' },
+  { id: 'card', label: 'Credit / Debit Card', icon: '💳' },
+  { id: 'netbanking', label: 'Net Banking', icon: '🏦' },
+  { id: 'cod', label: 'Cash on Day (COD)', icon: '💵' },
+];
 
 export default function BookPooja() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
   const [step, setStep] = useState(0);
-  const [selectedPandit, setSelectedPandit] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    date: '',
-    time: '',
-    locationType: '',
-    address: '',
-    city: '',
-  });
+  const [selectedPooja, setSelectedPooja] = useState(POOJAS.find(p => p.id === id) || POOJAS[0]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [locationType, setLocationType] = useState<'home' | 'temple' | 'online'>('home');
+  const [address, setAddress] = useState({ line1: '', city: '', pincode: '' });
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
-  const pooja = POOJAS_DATA[id || '1'];
-  if (!pooja) return <div className="pt-24 text-center text-brown font-serif">Pooja not found.</div>;
+  const formatPrice = (p: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(p);
 
-  const hours = Math.floor(pooja.durationMinutes / 60);
-  const mins = pooja.durationMinutes % 60;
-
-  const handleNext = () => {
-    if (step === 0 && !isAuthenticated) {
-      navigate('/auth');
-      return;
-    }
-    if (step < STEPS.length - 1) setStep(step + 1);
+  const canProceed = () => {
+    if (step === 0) return !!selectedPooja;
+    if (step === 1) return !!selectedDate && !!selectedTime;
+    if (step === 2) return locationType === 'online' || (address.line1 && address.city && address.pincode);
+    if (step === 3) return !!paymentMethod;
+    return true;
   };
 
-  const handleBook = () => {
-    navigate('/checkout', { state: { pooja, panditId: selectedPandit, ...formData } });
+  const handleConfirm = () => {
+    setIsProcessing(true);
+    setTimeout(() => {
+      setIsProcessing(false);
+      setIsConfirmed(true);
+    }, 2000);
   };
 
-  return (
-    <div className="min-h-screen pt-24 bg-sand text-brown font-sans">
-      <DivineGradients />
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        
-        {/* Progress Steps */}
-        <div className="flex items-center justify-between mb-10 overflow-x-auto pb-4">
-          {STEPS.map((s, i) => (
-            <div key={s} className="flex items-center">
-              <div className={`flex flex-col items-center ${i <= step ? 'text-kumkum' : 'text-brown/30'}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 ${
-                  i < step ? 'bg-kumkum border-kumkum text-white shadow-red' :
-                  i === step ? 'border-kumkum text-kumkum bg-lotus shadow-gold' :
-                  'border-brown/20 text-brown/30'
-                }`}>
-                  {i < step ? '✓' : i + 1}
-                </div>
-                <span className="text-[11px] mt-2 whitespace-nowrap font-semibold tracking-wide uppercase">{s}</span>
-              </div>
-              {i < STEPS.length - 1 && (
-                <div className={`h-0.5 w-8 md:w-16 mx-2 transition-all ${i < step ? 'bg-kumkum' : 'bg-brown/10'}`} />
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="md:col-span-2 bg-white rounded-3xl border border-gold/20 shadow-card p-6 md:p-8">
-            {/* Step 0: Pooja Details */}
-            {step === 0 && (
-              <div className="animate-fade-up">
-                <h2 className="text-3xl font-bold mb-4 text-brown font-serif">{pooja.name}</h2>
-                <p className="text-brown/70 text-sm leading-relaxed mb-6">{pooja.description}</p>
-                
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-lotus/40 border border-kumkum/10 rounded-2xl p-4 text-center">
-                    <div className="text-2xl font-bold text-kumkum">₹{pooja.price.toLocaleString()}</div>
-                    <div className="text-brown/60 text-xs mt-1 font-semibold uppercase tracking-wider">Total Ritual Price</div>
-                  </div>
-                  <div className="bg-light-gold/40 border border-gold/20 rounded-2xl p-4 text-center">
-                    <div className="text-2xl font-bold text-saffron">{hours}h {mins > 0 ? `${mins}m` : ''}</div>
-                    <div className="text-brown/60 text-xs mt-1 font-semibold uppercase tracking-wider">Duration</div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-brown font-serif mb-3 text-lg">Included Sacred Samagri (We Arrange)</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {pooja.samagri.map(s => (
-                      <span key={s} className="bg-sand border border-gold/10 text-brown/80 text-xs px-3 py-1.5 rounded-full font-medium">
-                        🪷 {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 1: Date & Time */}
-            {step === 1 && (
-              <div className="animate-fade-up space-y-5">
-                <h2 className="text-2xl font-bold text-brown font-serif">Choose Date & Time</h2>
-                <div>
-                  <label className="block text-sm font-semibold text-brown/80 mb-2">Select Auspicious Date</label>
-                  <input type="date" className="input-divine" min={new Date().toISOString().split('T')[0]} value={formData.date} onChange={e => setFormData(p => ({ ...p, date: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-brown/80 mb-2">Preferred Shubh Muhurat Time</label>
-                  <input type="time" className="input-divine" value={formData.time} onChange={e => setFormData(p => ({ ...p, time: e.target.value }))} />
-                </div>
-                {formData.time && (
-                  <p className="text-xs text-saffron font-medium">
-                    ⏰ Expected Ritual End Time: {(() => {
-                      const [h, m] = formData.time.split(':').map(Number);
-                      const end = new Date(); end.setHours(h + hours); end.setMinutes(m + mins);
-                      return end.toTimeString().substring(0, 5);
-                    })()}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Step 2: Location */}
-            {step === 2 && (
-              <div className="animate-fade-up space-y-5">
-                <h2 className="text-2xl font-bold text-brown font-serif">Choose Ceremony Mode</h2>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { type: 'HOME_VISIT', label: 'Home Visit', desc: 'Vedic priest visits you', icon: <TempleIcon className="text-kumkum" /> },
-                    { type: 'TEMPLE', label: 'At Temple', desc: 'Conducted at sacred temple', icon: <TempleIcon className="text-saffron" /> },
-                    { type: 'ONLINE', label: 'Online / E-Pooja', desc: 'Live video ritual', icon: <VideoIcon className="text-haldi" /> },
-                  ].map(loc => (
-                    <button
-                      key={loc.type}
-                      onClick={() => setFormData(p => ({ ...p, locationType: loc.type }))}
-                      className={`p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center gap-2 ${
-                        formData.locationType === loc.type ? 'border-kumkum bg-lotus/20 shadow-red' : 'border-gold/25 hover:border-gold/50 bg-white'
-                      }`}
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-sand flex items-center justify-center shadow-sm">
-                        {loc.icon}
-                      </div>
-                      <div className="text-xs font-bold text-brown">{loc.label}</div>
-                      <div className="text-[9px] text-brown/50 hidden sm:block">{loc.desc}</div>
-                    </button>
-                  ))}
-                </div>
-                
-                {formData.locationType === 'HOME_VISIT' && (
-                  <div className="space-y-4 animate-fade-up">
-                    <div>
-                      <label className="block text-sm font-semibold text-brown/80 mb-2">City</label>
-                      <input className="input-divine" placeholder="e.g. Mumbai, Delhi, Ahmedabad" value={formData.city} onChange={e => setFormData(p => ({ ...p, city: e.target.value }))} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-brown/80 mb-2">Full Pooja Location Address</label>
-                      <textarea className="input-divine min-h-24 resize-none" placeholder="House No., Street, Area, Pincode" value={formData.address} onChange={e => setFormData(p => ({ ...p, address: e.target.value }))} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Step 3: Select Pandit */}
-            {step === 3 && (
-              <div className="animate-fade-up space-y-4">
-                <h2 className="text-2xl font-bold text-brown font-serif">Select Pandit Ji</h2>
-                <p className="text-brown/50 text-xs">Browse profiles and select your preferred priest</p>
-                <div className="space-y-3">
-                  {MOCK_PANDITS.map(p => (
-                    <PanditCard
-                      key={p.id}
-                      {...p}
-                      selected={selectedPandit === p.id}
-                      onSelect={() => setSelectedPandit(p.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Confirm */}
-            {step === 4 && (
-              <div className="animate-fade-up space-y-4">
-                <h2 className="text-2xl font-bold text-brown font-serif">Booking Summary</h2>
-                <div className="space-y-3 bg-light-gold/30 border border-gold/20 rounded-2xl p-5">
-                  <div className="flex justify-between text-sm"><span className="text-brown/60">Pooja Ritual</span><span className="font-bold text-brown">{pooja.name}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-brown/60">Shubh Date</span><span className="font-bold text-brown">{formData.date || '—'}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-brown/60">Shubh Time</span><span className="font-bold text-brown">{formData.time || '—'}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-brown/60">Mode</span><span className="font-bold text-brown">{formData.locationType || '—'}</span></div>
-                  {formData.address && <div className="flex justify-between text-sm"><span className="text-brown/60">Address</span><span className="font-bold text-brown text-right max-w-xs">{formData.address}</span></div>}
-                  <div className="flex justify-between text-sm"><span className="text-brown/60">Selected Pandit</span><span className="font-bold text-brown">{MOCK_PANDITS.find(p => p.id === selectedPandit)?.name || 'Auto-assign Best Pandit'}</span></div>
-                  
-                  <div className="border-t border-gold/20 pt-3 flex justify-between text-lg font-bold text-brown">
-                    <span>Dakshina Amount</span><span className="text-kumkum">₹{pooja.price.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Navigation Buttons */}
-            <div className="flex gap-3 mt-8">
-              {step > 0 && (
-                <button onClick={() => setStep(s => s - 1)} className="btn-outline-gold flex-1 py-3 text-xs">
-                  ← Back
-                </button>
-              )}
-              {step < STEPS.length - 1 ? (
-                <button onClick={handleNext} className="btn-divine flex-1 text-xs py-3.5">
-                  Continue →
-                </button>
-              ) : (
-                <button onClick={handleBook} className="btn-divine flex-1 text-xs py-3.5">
-                  Proceed to Dakshina Payment (₹{pooja.price.toLocaleString()})
-                </button>
-              )}
-            </div>
+  if (isConfirmed) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-sand pt-20 px-4">
+        <div className="card-divine p-12 max-w-lg w-full text-center animate-scale-in">
+          <div className="w-24 h-24 rounded-full bg-gradient-divine flex items-center justify-center mx-auto mb-6 animate-glow">
+            <OmIcon size={48} color="white" />
           </div>
-
-          {/* Sidebar */}
-          <div className="space-y-4">
-            <div className="bg-white rounded-3xl border border-gold/20 shadow-card p-5">
-              <h3 className="font-bold text-brown font-serif mb-4 text-lg">Dakshina Summary</h3>
-              <div className="space-y-3 text-xs font-semibold">
-                <div className="flex justify-between text-brown/60">
-                  <span>Ritual Fee</span><span>₹{pooja.price.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-brown/60">
-                  <span>Platform Fee</span><span className="text-green-600">FREE</span>
-                </div>
-                <div className="border-t border-gold/10 pt-3 flex justify-between text-sm font-bold text-brown">
-                  <span>Total Dakshina</span><span className="text-kumkum">₹{pooja.price.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-green-50/50 border border-green-200 rounded-2xl p-4 flex gap-3 text-xs text-green-800">
-              <ShieldCheckIcon className="text-green-600 flex-shrink-0" size={18} />
-              <div>
-                <strong className="block mb-0.5">Verified Vedic Priests</strong>
-                All Pandits are certified & follow traditional ritual steps.
-              </div>
-            </div>
-            
-            <div className="bg-blue-50/50 border border-blue-200 rounded-2xl p-4 flex gap-3 text-xs text-blue-800">
-              <CoinsIcon className="text-blue-600 flex-shrink-0" size={18} />
-              <div>
-                <strong className="block mb-0.5">100% Refund Policy</strong>
-                Full dakshina returned if ritual is not conducted.
-              </div>
-            </div>
+          <h2 className="font-serif font-bold text-4xl text-brown mb-4">Booking Confirmed!</h2>
+          <p className="text-brown/70 mb-6">Your <strong className="text-kumkum">{selectedPooja.name}</strong> has been confirmed. Pandit Ji will arrive at the scheduled time with all required samagri.</p>
+          <div className="bg-sand rounded-2xl p-5 text-left space-y-3 mb-8 border border-gold/20">
+            <div className="flex justify-between text-sm"><span className="text-brown/60">Booking ID</span><span className="font-bold text-brown">#PJ{Math.floor(Math.random() * 90000) + 10000}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-brown/60">Pooja</span><span className="font-semibold text-brown">{selectedPooja.name}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-brown/60">Date & Time</span><span className="font-semibold text-brown">{selectedDate} at {selectedTime}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-brown/60">Amount Paid</span><span className="font-bold text-kumkum">{formatPrice(selectedPooja.price)}</span></div>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => navigate('/dashboard')} className="btn-divine flex-1">View Booking</button>
+            <button onClick={() => navigate('/')} className="btn-outline-gold flex-1">Back to Home</button>
           </div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col pt-20 bg-sand">
+      
+      {/* Header */}
+      <div className="bg-white border-b border-gold/10 px-4 py-6">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="font-serif font-bold text-3xl text-brown mb-6">Book a Pooja</h1>
+          
+          {/* Step Progress */}
+          <div className="flex items-center justify-between relative">
+            <div className="absolute left-0 right-0 top-6 h-0.5 bg-sand -z-0"></div>
+            <div className="absolute left-0 top-6 h-0.5 bg-gradient-divine -z-0 transition-all duration-500" style={{ width: `${(step / (STEPS.length - 1)) * 100}%` }}></div>
+            
+            {STEPS.map((s, i) => (
+              <div key={i} className="flex flex-col items-center gap-2 relative z-10">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold border-2 transition-all duration-300 ${
+                  i < step ? 'bg-green-500 border-green-500 text-white' :
+                  i === step ? 'bg-gradient-divine border-kumkum text-white shadow-red' :
+                  'bg-white border-gold/30 text-brown/40'
+                }`}>
+                  {i < step ? <Check size={20} /> : s.icon}
+                </div>
+                <span className={`text-xs font-semibold hidden md:block ${i === step ? 'text-kumkum' : i < step ? 'text-green-600' : 'text-brown/40'}`}>{s.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 py-10">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+
+          {/* ── STEP 0: SELECT POOJA ── */}
+          {step === 0 && (
+            <div className="animate-fade-in">
+              <h2 className="font-serif font-bold text-3xl text-brown mb-8">Select Pooja</h2>
+              <div className="space-y-4">
+                {POOJAS.map(pooja => (
+                  <div key={pooja.id} onClick={() => setSelectedPooja(pooja)} className={`card-divine p-6 cursor-pointer flex items-center justify-between transition-all ${selectedPooja.id === pooja.id ? 'border-2 border-kumkum shadow-red' : ''}`}>
+                    <div className="flex items-center gap-5">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedPooja.id === pooja.id ? 'border-kumkum bg-kumkum' : 'border-gold/40'}`}>
+                        {selectedPooja.id === pooja.id && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                      </div>
+                      <div>
+                        <p className="font-bold text-brown text-lg">{pooja.name}</p>
+                        <div className="flex items-center gap-4 text-xs text-brown/60 mt-1">
+                          <span className="flex items-center gap-1"><Clock size={12} /> {pooja.duration}</span>
+                          <span className="flex items-center gap-1"><User size={12} /> {pooja.pandits} Pandit{pooja.pandits > 1 ? 's' : ''}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-serif font-bold text-2xl text-kumkum">{formatPrice(pooja.price)}</p>
+                      <p className="text-xs text-brown/50">incl. samagri</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 1: DATE & TIME ── */}
+          {step === 1 && (
+            <div className="animate-fade-in space-y-8">
+              <h2 className="font-serif font-bold text-3xl text-brown">Choose Date & Time</h2>
+              <div>
+                <label className="block text-xs font-semibold text-brown/70 mb-3 uppercase tracking-wider">Pooja Date</label>
+                <input
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  className="input-divine w-full"
+                  value={selectedDate}
+                  onChange={e => setSelectedDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-brown/70 mb-3 uppercase tracking-wider">Preferred Start Time</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {TIME_SLOTS.map(slot => (
+                    <button key={slot} onClick={() => setSelectedTime(slot)} className={`py-4 rounded-2xl text-sm font-semibold border-2 transition-all ${selectedTime === slot ? 'bg-gradient-divine text-white border-transparent shadow-red' : 'border-gold/30 bg-white text-brown hover:border-gold'}`}>
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
+                💡 <strong>Muhurat Tip:</strong> For best results, consult with the pandit to find the most auspicious muhurat for your specific ritual.
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 2: LOCATION ── */}
+          {step === 2 && (
+            <div className="animate-fade-in space-y-8">
+              <h2 className="font-serif font-bold text-3xl text-brown">Ceremony Location</h2>
+              <div className="grid grid-cols-3 gap-4">
+                {(['home', 'temple', 'online'] as const).map(type => (
+                  <button key={type} onClick={() => setLocationType(type)} className={`py-6 rounded-2xl border-2 flex flex-col items-center gap-2 text-sm font-semibold capitalize transition-all ${locationType === type ? 'border-kumkum bg-lotus shadow-red text-kumkum' : 'border-gold/30 bg-white text-brown hover:border-gold'}`}>
+                    <span className="text-3xl">{type === 'home' ? '🏠' : type === 'temple' ? '🛕' : '💻'}</span>
+                    {type}
+                  </button>
+                ))}
+              </div>
+              {locationType !== 'online' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-brown/70 mb-2 uppercase tracking-wider">Address Line 1 *</label>
+                    <input type="text" placeholder="House/Flat No., Building Name, Street" className="input-divine w-full" value={address.line1} onChange={e => setAddress({ ...address, line1: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-brown/70 mb-2 uppercase tracking-wider">City *</label>
+                      <input type="text" placeholder="City" className="input-divine w-full" value={address.city} onChange={e => setAddress({ ...address, city: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-brown/70 mb-2 uppercase tracking-wider">Pincode *</label>
+                      <input type="text" placeholder="110001" maxLength={6} className="input-divine w-full" value={address.pincode} onChange={e => setAddress({ ...address, pincode: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {locationType === 'online' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 text-sm text-blue-800">
+                  📹 <strong>Online Pooja:</strong> A video link will be shared on WhatsApp 30 minutes before the ceremony. Make sure your device is charged and you have a stable internet connection.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── STEP 3: PAYMENT ── */}
+          {step === 3 && (
+            <div className="animate-fade-in space-y-6">
+              <h2 className="font-serif font-bold text-3xl text-brown">Payment Method</h2>
+              
+              {/* Summary */}
+              <div className="bg-white rounded-3xl border border-gold/20 shadow-sm p-6 space-y-3">
+                <h3 className="font-semibold text-brown text-lg mb-4">Booking Summary</h3>
+                <div className="flex justify-between text-sm text-brown/70"><span>{selectedPooja.name}</span><span>{formatPrice(selectedPooja.price)}</span></div>
+                <div className="flex justify-between text-sm text-brown/70"><span>Samagri Included</span><span className="text-green-600">Free</span></div>
+                <div className="flex justify-between text-sm text-brown/70"><span>Platform Fee</span><span>₹0</span></div>
+                <div className="gold-divider-sm"></div>
+                <div className="flex justify-between font-bold text-lg text-brown"><span>Total</span><span className="text-kumkum">{formatPrice(selectedPooja.price)}</span></div>
+              </div>
+              
+              <div className="space-y-3">
+                {PAYMENT_METHODS.map(pm => (
+                  <div key={pm.id} onClick={() => setPaymentMethod(pm.id)} className={`card-divine p-5 cursor-pointer flex items-center gap-4 ${paymentMethod === pm.id ? 'border-2 border-kumkum shadow-red' : ''}`}>
+                    <span className="text-2xl">{pm.icon}</span>
+                    <span className="font-semibold text-brown">{pm.label}</span>
+                    <div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === pm.id ? 'border-kumkum bg-kumkum' : 'border-gold/40'}`}>
+                      {paymentMethod === pm.id && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 4: CONFIRM ── */}
+          {step === 4 && (
+            <div className="animate-fade-in space-y-6">
+              <h2 className="font-serif font-bold text-3xl text-brown">Review & Confirm</h2>
+              <div className="card-divine p-8 space-y-5">
+                <h3 className="font-serif font-bold text-2xl text-brown mb-6">Booking Details</h3>
+                {[
+                  { icon: '🕉️', label: 'Pooja', value: selectedPooja.name },
+                  { icon: '📅', label: 'Date', value: selectedDate || '—' },
+                  { icon: '🕐', label: 'Time', value: selectedTime || '—' },
+                  { icon: '📍', label: 'Location', value: locationType === 'online' ? 'Online (Video)' : `${address.line1}, ${address.city} - ${address.pincode}` },
+                  { icon: '💳', label: 'Payment', value: PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label || '—' },
+                  { icon: '💰', label: 'Total Amount', value: formatPrice(selectedPooja.price) },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4 py-3 border-b border-gold/10 last:border-none last:py-0 last:pb-0">
+                    <span className="text-xl w-8">{item.icon}</span>
+                    <div className="flex-1">
+                      <p className="text-xs text-brown/50 uppercase tracking-wider mb-0.5">{item.label}</p>
+                      <p className="font-semibold text-brown">{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 text-sm text-brown/70 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                <span className="text-2xl">🙏</span>
+                <p>By confirming this booking, you agree to our <span className="text-kumkum font-medium">Terms of Service</span>. The pandit will call you 1 hour before arrival.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <div className="flex gap-4 mt-10">
+            {step > 0 && (
+              <button onClick={() => setStep(s => s - 1)} className="btn-outline-gold px-8">← Back</button>
+            )}
+            <button
+              onClick={step < STEPS.length - 1 ? () => setStep(s => s + 1) : handleConfirm}
+              disabled={!canProceed() || isProcessing}
+              className="btn-divine flex-1 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isProcessing ? (
+                <>Processing... <span className="animate-spin">⏳</span></>
+              ) : step < STEPS.length - 1 ? (
+                'Continue →'
+              ) : (
+                'Confirm & Pay 🙏'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <Footer />
     </div>
   );
 }
