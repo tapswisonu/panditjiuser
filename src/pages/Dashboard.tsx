@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate, Link } from 'react-router-dom';
-import { DivineGradients, ShieldCheckIcon, CoinsIcon, CalendarCheckIcon, UserIcon } from '../components/Icons';
+import { DivineGradients } from '../components/Icons';
 
 const MOCK_BOOKINGS = [
   { id: '#PJ829341', pooja: 'Satyanarayan Katha', pandit: 'Pt. Ramesh Sharma', date: '2025-08-20', time: '09:00', status: 'CONFIRMED', amount: 5100, location: 'Home Visit' },

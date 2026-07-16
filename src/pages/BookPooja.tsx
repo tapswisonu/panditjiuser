@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PanditCard from '../components/PanditCard';
 import { useAuth } from '../context/AuthContext';
-import { DivineGradients, ShieldCheckIcon, CoinsIcon, ClockIcon, TempleIcon, VideoIcon, UserIcon } from '../components/Icons';
+import { DivineGradients, ShieldCheckIcon, CoinsIcon, TempleIcon, VideoIcon } from '../components/Icons';
 
 const POOJAS_DATA: Record<string, { name: string; description: string; price: number; durationMinutes: number; panditsRequired: number; samagri: string[] }> = {
   '1': { name: 'Satyanarayan Katha', description: 'A sacred pooja dedicated to Lord Vishnu, performed for prosperity and blessings in all endeavors of life.', price: 5100, durationMinutes: 180, panditsRequired: 1, samagri: ['Panchamrit', 'Tulsi leaves', 'Flowers', 'Dhoop', 'Incense', 'Banana', 'Coconut', 'Yellow cloth'] },

@@ -4,7 +4,7 @@ import { useState } from 'react';
 export default function Checkout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { pooja, date, time, locationType, address } = (location.state || {}) as any;
+  const { pooja, date, time, locationType } = (location.state || {}) as any;
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [upiId, setUpiId] = useState('');
   const [processing, setProcessing] = useState(false);

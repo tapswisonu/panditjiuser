@@ -22,15 +22,12 @@ export default function Navbar() {
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-20">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="relative w-12 h-12 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-kumkum to-saffron opacity-20 group-hover:opacity-40 transition-opacity animate-breathe"></div>
-            <span className="text-2xl animate-breathe">🪷</span>
-          </div>
-          <div>
-            <p className="text-xl font-bold leading-none font-serif text-brown">ॐ Pandit Ji</p>
-            <p className="text-xs text-saffron font-medium tracking-widest">DIVINE SERVICES</p>
-          </div>
+        <Link to="/" className="flex items-center gap-2 group">
+          <img
+            src="/logo.png"
+            alt="Online Pandit Ji"
+            className="h-14 w-auto object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
+          />
         </Link>
 
         {/* Desktop Nav */}

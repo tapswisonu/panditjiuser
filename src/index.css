@@ -64,7 +64,7 @@
 
   /* Cards */
   .card-divine {
-    @apply rounded-3xl overflow-hidden transition-all duration-400;
+    @apply rounded-3xl overflow-hidden transition-all duration-300;
     background: white;
     border: 1px solid rgba(212,175,55,0.15);
     box-shadow: 0 4px 24px rgba(93,64,55,0.08);
